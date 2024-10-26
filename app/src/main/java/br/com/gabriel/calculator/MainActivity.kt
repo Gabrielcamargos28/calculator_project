@@ -20,12 +20,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+        editText = findViewById(R.id.editTextConta)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
             }
-        }
+    }
     fun positionButtom(view: View) = when (view.id) {
         R.id.btn0 -> digite("0")
         R.id.btn1 -> digite("1")
@@ -47,37 +48,23 @@ class MainActivity : AppCompatActivity() {
         R.id.btnDeletar -> deletar(1)
         else -> Log.d("nada", "Algo diferente")
     }
-    fun digite(s: String) {
-        var auxS = s
-        conta = editText.text.toString()
-        if (conta.length == 0) {
-            if (s.equals("+") || s.equals("-") || s.equals("/") || s.equals("*")) {
-                auxS = ""
-            } else {
-                conta += auxS
-                editText.append(conta)
-            }
-        } else {
 
-            if (s.equals("+") || s.equals("-") || s.equals("/") || s.equals("*")) {
-                if (conta.length > 1) {
-                    var auxS2 = conta.get(conta.length - 2).toString()
-                    auxS = verificarOperacao(auxS2, s)
-                    conta += auxS
-                    editText.setText(conta)
-                } else {
-                    conta += " " + s + " "
-                    editText.setText(conta)
-                }
-            } else {
-                conta = auxS
-                editText.append(conta)
-            }
-        }
-    }
     fun limpar() {
         editText.setText("")
         conta = ""
+    }
+
+    fun digite(s: String) {
+        val lastChar = if (conta.isNotEmpty()) conta.last().toString() else ""
+        if (s in setOf("+", "-", "*", "/")) {
+            if (lastChar in setOf("+", "-", "*", "/")) {
+                conta = conta.dropLast(1) // Remove the last operator if it exists
+            }
+            conta += " $s "
+        } else {
+            conta += s
+        }
+        editText.setText(conta)
     }
 
     fun executarOperacao(numero1: Double, operador: Char, numero2: Double): Double {
@@ -95,56 +82,44 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun calcular() {
-        // Modo Difícil
+        val expression = mutableListOf<Char>()
+        val numbers = mutableListOf<Double>()
+        val operators = setOf('+', '-', '*', '/')
 
-        var expression = mutableListOf<Char>()
-        for (i in conta.indices) {
-            var string: String = conta.get(i).toString()
-            if (string.equals("+") || string.equals("-") || string.equals("/") || string.equals("*")) {
-                expression.add(conta.get(i))
-            }
-        }
-        var separador: List<String> = conta.split("+", "-", "*", "/")
-        var array = separador.toMutableList()
-        var int = 0
-        try {
-            while (expression.size != 0) {
-                var numero1 = array.get(0).toDouble()
-                var numero2 = array.get(1).toDouble()
-                var operador = expression.get(0)
-                var total: Double = 0.0
-                total = executarOperacao(numero1, operador, numero2)
-
-                array.removeAt(0)
-                expression.removeAt(0)
-                if (int == 0) {
-                    array.removeAt(0)
-                    int++
+        var tempNum = StringBuilder()
+        for (char in conta) {
+            if (char in operators) {
+                if (tempNum.isNotEmpty()) {
+                    numbers.add(tempNum.toString().toDouble())
+                    tempNum.clear()
                 }
-                array.add(0, total.toString())
+                expression.add(char)
+            } else {
+                tempNum.append(char)
             }
-            editText.setText(array.get(0))
-            conta = array.get(0)
-        }catch (e :NumberFormatException){
-            editText.setText("0")
-            conta = "0"
+        }
+        if (tempNum.isNotEmpty()) {
+            numbers.add(tempNum.toString().toDouble())
         }
 
-        //Modo mamão com açucar
-
-        if (!editText.text.toString().equals("")) {
-            try {
-                //val expression = ExpressionBuilder(editText.text.toString()).build()
-                //val result: Double = expression.evaluate()
-                //conta = result.toString()
-                editText.setText(conta)
-            } catch (ex: NumberFormatException) {
-                Log.e("Erro", ex.toString())
-                conta = "0"
-                editText.setText(conta)
+        try {
+            while (expression.isNotEmpty()) {
+                val number1 = numbers.removeAt(0)
+                val operator = expression.removeAt(0)
+                val number2 = numbers.removeAt(0)
+                val total = executarOperacao(number1, operator, number2)
+                numbers.add(0, total) // Update the result in the list
             }
+            editText.setText(numbers[0].toString())
+            conta = numbers[0].toString() // Update conta
+        } catch (e: Exception) {
+            editText.setText("Error")
+            conta = ""
         }
     }
+
+
+
     fun deletar(int: Int) {
         if (conta.length > 0) {
             conta = conta.substring(0, conta.length - int)
